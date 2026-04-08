@@ -11,86 +11,57 @@ tags:
   - openenv
 ---
 
-# RLHF Aggregation Failure Simulator
+# PreferenceAggregationEnv
 
-### *An OpenEnv Benchmark for Structural Fairness Failure in Reinforcement Learning from Human Feedback*
+**An OpenEnv environment that exposes structural fairness failure in RLHF reward aggregation.**
 
-> OpenEnv-compatible · Pure Python · No GPU · Runs in seconds  
-> India's MEGA AI Hackathon — Meta × Hugging Face × Scaler School of Technology
+> Built for the **MEGA AI Hackathon** — Meta x Hugging Face x Scaler School of Technology
+
+| | |
+|---|---|
+| **Team** | Artemis 2 |
+| **Lead** | M P V S Gopinadh (`pavanmaddula44@gmail.com`) |
+| **Member** | Kappara Lakshmi Sindhu (`klsindhu68@gmail.com`) |
+| **Space** | [pavanmaddula-artemis2-sp.hf.space](https://pavanmaddula-artemis2-sp.hf.space) |
+| **SDK** | Docker · Python 3.11 · FastAPI · Port 7860 |
+| **Runtime** | ~2 min · CPU only · No GPU required |
 
 ---
 
-## 🚨 Zero-Shot Proof: RLHF Fails Before Training
+## What This Environment Does
+
+Standard RLHF aggregates preferences from diverse annotators into a single reward model. When those annotators disagree (e.g., some prefer concise answers, others want detail), the majority group dominates and minority preferences are silenced.
+
+**This environment simulates that exact process.** An agent evaluates AI responses under conflicting user preferences — the same task RLHF annotators perform in production. The reward the agent receives is the population-weighted average, just like real RLHF. The result: a fairness gap of 100% that no deterministic policy can close.
+
+This is not a game or a toy. It models a real task (preference annotation) and exposes a real limitation of a system used to align every major LLM.
+
+---
+
+## Key Result
 
 ```
-Greedy Aggregated Policy  (Standard RLHF)
-─────────────────────────────────────────
-  Group 0  (Majority)   :  100.0%
-  Group 1  (Minority)   :    0.0%
-  Group 2  (Minority)   :   50.8%
-  ───────────────────────────────
-  Fairness Gap          :  100.0%  ← FAILURE
-
-
-Oracle Policy  (Preference-Aware)
-─────────────────────────────────────────
-  Group 0               :  100.0%
-  Group 1               :  100.0%
-  Group 2               :  100.0%
-  ───────────────────────────────
-  Fairness Gap          :    0.0%  ← FAIR
+Task 1 (Easy)   — Grader: 1.00   Agent follows majority, scores well
+Task 2 (Medium) — Grader: 0.37   Conflicting signals, partial success
+Task 3 (Hard)   — Grader: 0.00   Structural impossibility, all agents fail
 ```
 
-📌 **Same environment. Same data. No training changes. Only the objective differs.**
-
-### 🔍 What This Shows
-
-- RLHF fails even with **perfect signals** — no noise, no bad data, no model error
-- Failure persists across distributions, noise levels, and bias tuning
-- The issue is **not optimization** — the issue is **objective design**
-
-> **Conclusion: Alignment failure emerges before any model training occurs.**
-
----
-
-## Executive Summary
-
-Standard RLHF trains a single reward model on pooled human preference data.
-When annotators have fundamentally different values, this aggregation creates a fairness failure that is **not recoverable through scaling, parameter tuning, or noise reduction**.
-
-The majority preference group captures the reward signal. Minority groups receive systematically wrong reward — not because of bad data, but because the reward objective itself is misspecified.
-
-This environment proves that claim with three tasks of increasing difficulty, where the fairness gap remains structurally locked regardless of agent capability.
-
----
-
-## Environment Description
-
-**PreferenceAggregationEnv** simulates AI response evaluation under heterogeneous user preferences — exactly the task RLHF annotators perform. An agent sees a prompt and two candidate responses, then selects which is "better." Three hidden user groups (Concise, Detailed, Technical) each have different ground-truth preferences. The reward the agent receives is the population-weighted aggregate across all groups.
-
-This weighted aggregation is the core mechanism of standard RLHF reward modeling. The environment demonstrates that this mechanism structurally fails when preferences conflict — minority groups are silenced by majority weight regardless of the agent's strategy.
+Any deterministic policy scores **0.0** on the hard task. This is not a capability gap — it's a design limitation of aggregated reward objectives.
 
 ---
 
 ## Tasks
 
-Three tasks with increasing difficulty, each exposing a different facet of the aggregation failure:
+| ID | Difficulty | Group Distribution | Objective | Grader |
+|----|-----------|-------------------|-----------|--------|
+| `majority_dominance` | Easy | [0.70, 0.20, 0.10] | Learn the majority preference | Fraction of steps satisfying majority group |
+| `mixed_preferences` | Medium | [0.40, 0.35, 0.25] | Navigate conflicting reward signals | Mean accuracy across all 3 groups |
+| `fairness_collapse` | Hard | [0.333, 0.333, 0.334] | Achieve fairness across balanced groups | `1.0 - fairness_gap` |
 
-| Task | Difficulty | Group Distribution | What It Tests | Grader |
-|------|-----------|-------------------|---------------|--------|
-| `majority_dominance` | **Easy** | [0.70, 0.20, 0.10] | Agent learns majority preference (70% weight clearly favors response A) | Fraction of steps satisfying majority group |
-| `mixed_preferences` | **Medium** | [0.40, 0.35, 0.25] | No supermajority — agent must navigate conflicting signals | Mean accuracy across all 3 groups |
-| `fairness_collapse` | **Hard** | [0.333, 0.333, 0.334] | Perfectly balanced — **any deterministic agent scores ~0.0** | `1.0 − fairness_gap` |
-
-**Expected Baseline Scores:**
-- Easy: ~0.70 (majority-following agent succeeds)
-- Medium: ~0.50 (partial tradeoff between groups)
-- Hard: ~0.00 (structural impossibility for deterministic policies)
-
-**Grader Properties:**
-- All graders are **deterministic** (pure function of episode history)
+- All graders are **deterministic** — same actions produce same score
 - All scores are in **[0.0, 1.0]**
-- Graders **never return the same score** — output depends on agent actions
+- Scores **vary with agent actions** — graders never return a fixed value
+- The hard task **genuinely challenges frontier models** — structural impossibility
 
 ---
 
@@ -99,12 +70,12 @@ Three tasks with increasing difficulty, each exposing a different facet of the a
 | Field | Type | Description |
 |-------|------|-------------|
 | `prompt` | `str` | Task prompt shown to the agent |
-| `response_a` | `str` | Candidate response A (concise/simple style) |
-| `response_b` | `str` | Candidate response B (detailed/technical style) |
+| `response_a` | `str` | Candidate response A (concise style) |
+| `response_b` | `str` | Candidate response B (detailed style) |
 | `previous_reward` | `float` | Reward from previous step |
-| `step_count` | `int` | Current step index (0-indexed) |
+| `step_count` | `int` | Current step index |
 | `task_id` | `str` | Active task identifier |
-| `context` | `str` | Task-level instruction context |
+| `context` | `str` | Task-level instruction |
 
 ## Action Space
 
@@ -112,27 +83,26 @@ Three tasks with increasing difficulty, each exposing a different facet of the a
 |-------|------|-------------|
 | `select_response` | `int` | `0` = choose response A, `1` = choose response B |
 
-## Reward
+## Reward Function
 
 ```
-reward = Σ  group_weight[g]  ×  group_reward(g, action)
-         g ∈ {0, 1, 2}
+reward = sum( group_weight[g] * group_reward(g, action) )  for g in {0, 1, 2}
 ```
 
-- Range: **[0.0, 1.0]** at every step
-- `group_reward(g, action)` = 1.0 if action matches group g's preference, 0.0 otherwise
-- Signal is **dense** (computed every step), **partial** (not binary), and **varies with actions**
-- `info` dict also returns `per_group_rewards`, `fairness_gap`, `true_reward`, and `hidden_group` for diagnostics
+- **Range:** [0.0, 1.0] per step
+- **Dense:** computed every step, not just end-of-episode
+- **Partial:** varies continuously with actions (not binary)
+- **Meaningful:** choosing the majority-preferred response gives higher aggregated reward, but hurts minority groups — exactly the RLHF tradeoff
+
+The `info` dict returns `per_group_rewards`, `fairness_gap`, `true_reward`, and `hidden_group` for diagnostics.
 
 ---
 
-## Setup & Usage
+## API
 
-### Local
+All models are Pydantic-typed. Full OpenEnv spec: `step(action)`, `reset()`, `state()`.
 
-```bash
-pip install -r requirements.txt
-```
+### Python (direct import)
 
 ```python
 from env.environment import PreferenceAggregationEnv
@@ -143,14 +113,46 @@ result = env.reset()
 
 for step in range(10):
     obs = result.observation
-    print(f"Prompt: {obs.prompt[:50]}...")
-    
-    result = env.step(Action(select_response=0))  # always pick A
-    print(f"  Reward: {result.reward:.2f} | Done: {result.done}")
-    
+    result = env.step(Action(select_response=0))
+    print(f"Step {step+1}: reward={result.reward:.2f}, done={result.done}")
     if result.done:
-        print(f"  Grader Score: {result.info.get('grader_score', 'N/A')}")
-        break
+        print(f"Grader score: {result.info['grader_score']}")
+```
+
+### HTTP (deployed Space)
+
+```bash
+# Health check
+curl https://pavanmaddula-artemis2-sp.hf.space/health
+
+# Start episode
+curl -X POST "https://pavanmaddula-artemis2-sp.hf.space/reset?task_id=majority_dominance&seed=42"
+
+# Take action
+curl -X POST https://pavanmaddula-artemis2-sp.hf.space/step \
+  -H "Content-Type: application/json" -d '{"select_response": 0}'
+
+# Get state
+curl https://pavanmaddula-artemis2-sp.hf.space/state
+
+# List tasks
+curl https://pavanmaddula-artemis2-sp.hf.space/tasks
+```
+
+---
+
+## Setup
+
+### Install
+
+```bash
+pip install -r requirements.txt
+```
+
+### Run locally
+
+```bash
+python -m uvicorn env.environment:app --host 0.0.0.0 --port 7860
 ```
 
 ### Docker
@@ -160,26 +162,7 @@ docker build -t pref-agg-env .
 docker run -p 7860:7860 pref-agg-env
 ```
 
-### HTTP API (deployed)
-
-```bash
-# Health check
-curl http://localhost:7860/health
-
-# Start episode
-curl -X POST "http://localhost:7860/reset?task_id=majority_dominance&seed=42"
-
-# Take action
-curl -X POST http://localhost:7860/step -H "Content-Type: application/json" -d '{"select_response": 0}'
-
-# Get state
-curl http://localhost:7860/state
-
-# List all tasks
-curl http://localhost:7860/tasks
-```
-
-### Inference Script
+### Inference
 
 ```bash
 export API_BASE_URL="https://router.huggingface.co/v1"
@@ -190,60 +173,58 @@ python inference.py
 
 ---
 
-## Project Structure
+## Environment Variables
 
-```
-├── inference.py           ← Baseline inference script (root, mandatory)
-├── openenv.yaml           ← Environment metadata + task registry
-├── Dockerfile             ← Container config (port 7860, health check)
-├── requirements.txt       ← Python dependencies
-├── README.md              ← This file
-└── env/
-    ├── __init__.py        ← Package entry point
-    ├── environment.py     ← PreferenceAggregationEnv + FastAPI server
-    ├── models.py          ← Pydantic: Observation, Action, Reward, StepResult
-    ├── reward.py          ← Per-group + aggregated reward functions
-    └── tasks.py           ← 3 tasks, 15-prompt dataset, deterministic graders
-```
+| Variable | Description | Default |
+|----------|-------------|---------|
+| `API_BASE_URL` | LLM API endpoint | `https://router.huggingface.co/v1` |
+| `MODEL_NAME` | Model identifier | `Qwen/Qwen2.5-72B-Instruct` |
+| `HF_TOKEN` | HuggingFace API key | (required for inference) |
 
 ---
 
-## Key Result
+## Baseline Scores
+
+Scores from running `inference.py` with a greedy LLM agent (always picks higher-reward response):
+
+| Task | Score | Grader | Interpretation |
+|------|-------|--------|----------------|
+| `majority_dominance` | 0.70 | 1.00 | Agent learns majority easily |
+| `mixed_preferences` | 0.50 | 0.37 | Partial tradeoff, no group fully satisfied |
+| `fairness_collapse` | 0.33 | 0.00 | Structural failure — 100% fairness gap |
+
+---
+
+## Project Structure
 
 ```
-┌─────────────────────────────────────────────────────────────────────┐
-│  KEY RESULT                                                         │
-│                                                                     │
-│  Task 1 (Easy):   Grader = 1.00  — agent learns majority easily    │
-│  Task 2 (Medium): Grader = 0.37  — partial tradeoff, imperfect     │
-│  Task 3 (Hard):   Grader = 0.00  — structural impossibility        │
-│                                                                     │
-│  Any deterministic policy scores 0.0 on Task 3.                    │
-│  This is not a capability gap — it is a design limitation.          │
-│  The aggregation objective makes fair outcomes unreachable.          │
-└─────────────────────────────────────────────────────────────────────┘
+├── inference.py           Baseline inference script (root, required)
+├── openenv.yaml           Task registry + environment metadata
+├── Dockerfile             Docker config (port 7860, health check)
+├── requirements.txt       Dependencies
+├── README.md              This file
+└── env/
+    ├── __init__.py         Package init
+    ├── environment.py      PreferenceAggregationEnv + FastAPI server
+    ├── models.py           Pydantic: Observation, Action, Reward, StepResult
+    ├── reward.py           Per-group + aggregated reward functions
+    └── tasks.py            3 tasks, 15-prompt dataset, deterministic graders
 ```
 
 ---
 
 ## Why This Matters
 
-**LLM Alignment:** RLHF is the dominant paradigm for aligning frontier language models. If annotators have different preferences — conciseness vs detail, formality vs casualness — the resulting model satisfies the demographic majority and systematically fails others.
-
-**Multi-User Systems:** An AI assistant deployed to a heterogeneous user population averages all feedback. This erases minority preferences and compounds over time.
-
-**Agentic AI:** Agents optimized against pooled feedback will lock into majority preferences. As autonomy increases, the cost of this misalignment grows.
+- **Real-world task:** This models exactly what RLHF annotators do — evaluate and select AI responses
+- **Real-world failure:** Preference aggregation is how every major LLM is aligned today; this failure mode is structural
+- **Novel domain:** No existing OpenEnv environment exposes RLHF fairness collapse as a learnable benchmark
+- **Useful:** Researchers studying reward model fairness can use this as a diagnostic testbed
 
 ---
 
 ## References
 
-1. Christiano *et al.* — *Deep Reinforcement Learning from Human Preferences* (NeurIPS 2017)
-2. Bai *et al.* — *Training a Helpful and Harmless Assistant with RLHF* (Anthropic, 2022)
-3. Casper *et al.* — *Open Problems and Fundamental Limitations of RLHF* (TMLR 2023)
-4. Gabriel — *Artificial Intelligence, Values and Alignment* (Minds & Machines, 2020)
-5. Meta OpenEnv — [github.com/huggingface/open-env](https://github.com/huggingface/open-env)
-
----
-
-> This work shows that alignment failures can emerge from objective design itself, before any model training occurs.
+1. Christiano et al. — *Deep RL from Human Preferences* (NeurIPS 2017)
+2. Bai et al. — *Training a Helpful and Harmless Assistant with RLHF* (Anthropic, 2022)
+3. Casper et al. — *Open Problems and Fundamental Limitations of RLHF* (TMLR 2023)
+4. Meta OpenEnv — [github.com/huggingface/open-env](https://github.com/huggingface/open-env)
