@@ -266,6 +266,21 @@ if _FASTAPI_AVAILABLE:
     # Global environment instance (single-agent evaluation model)
     _env: Optional[PreferenceAggregationEnv] = None
 
+    @app.get("/")
+    async def root():
+        return {
+            "name": "PreferenceAggregationEnv",
+            "description": "OpenEnv benchmark: RLHF preference aggregation failure simulator",
+            "version": "2.0.0",
+            "endpoints": {
+                "POST /reset": "Begin a new episode",
+                "POST /step": "Take an action",
+                "GET /state": "Get current state",
+                "GET /tasks": "List available tasks",
+                "GET /health": "Health check",
+            },
+        }
+
     @app.get("/health")
     async def health():
         return {"status": "ok", "env": "preference-aggregation-env", "version": "2.0.0"}
