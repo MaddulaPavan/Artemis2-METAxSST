@@ -1,3 +1,16 @@
+---
+title: RLHF Aggregation Failure Simulator
+emoji: 🎯
+colorFrom: indigo
+colorTo: purple
+sdk: docker
+app_port: 7860
+pinned: false
+license: mit
+tags:
+  - openenv
+---
+
 # RLHF Aggregation Failure Simulator
 
 ### *An OpenEnv Benchmark for Structural Fairness Failure in Reinforcement Learning from Human Feedback*
