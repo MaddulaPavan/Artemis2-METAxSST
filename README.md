@@ -232,7 +232,6 @@ This environment is **Team Artemis 2's** Round 1 submission for:
 | | |
 |---|---|
 | **Event** | Meta OpenEnv Hackathon — Round 1 |
-| **Organizers** | Meta, Hugging Face, Scaler School of Technology |
 | **Round** | Round 1 — Build a Mini RL Environment (25 Mar - 8 Apr 2026) |
 | **Team** | **Artemis 2** |
 | **Lead** | M P V S Gopinadh (`pavanmaddula44@gmail.com`) |
