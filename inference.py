@@ -8,22 +8,15 @@ REQUIRED ENVIRONMENT VARIABLES:
   MODEL_NAME     Model identifier
   HF_TOKEN       API key / HuggingFace token
 
-USAGE:
-  export API_BASE_URL="https://api-inference.huggingface.co/v1"
-  export MODEL_NAME="meta-llama/Llama-3.1-70B-Instruct"
-  export HF_TOKEN="hf_..."
-  python inference.py
-
-LOG FORMAT (strict — deviation causes evaluation failure):
-  [START] {"task": ..., "env": ..., "model": ...}
-  [STEP]  {"step": ..., "action": ..., "reward": ..., "done": ..., "error": ...}
-  [END]   {"success": ..., "steps": ..., "score": ..., "rewards": [...]}
+STDOUT FORMAT (mandatory — any deviation fails evaluation):
+  [START] task=<task_name> env=<benchmark> model=<model_name>
+  [STEP]  step=<n> action=<action_str> reward=<0.00> done=<true|false> error=<msg|null>
+  [END]   success=<true|false> steps=<n> score=<score> rewards=<r1,r2,...,rn>
 """
 
+import asyncio
 import os
 import sys
-import json
-import asyncio
 from typing import List, Optional
 
 from openai import OpenAI
@@ -32,19 +25,20 @@ from openai import OpenAI
 # Environment variables (EXACT names required by spec)
 # ---------------------------------------------------------------------------
 
-API_BASE_URL: str = os.getenv("API_BASE_URL", "https://api-inference.huggingface.co/v1")
-MODEL_NAME:   str = os.getenv("MODEL_NAME",   "meta-llama/Llama-3.1-70B-Instruct")
-API_KEY:      str = os.getenv("HF_TOKEN",      "")   # HF_TOKEN maps to API_KEY
+API_KEY:      str = os.getenv("HF_TOKEN") or os.getenv("API_KEY") or ""
+API_BASE_URL: str = os.getenv("API_BASE_URL") or "https://router.huggingface.co/v1"
+MODEL_NAME:   str = os.getenv("MODEL_NAME") or "Qwen/Qwen2.5-72B-Instruct"
 
 # ---------------------------------------------------------------------------
 # Constants
 # ---------------------------------------------------------------------------
 
 BENCHMARK        = "preference-aggregation-env"
+TASK_IDS         = ["majority_dominance", "mixed_preferences", "fairness_collapse"]
 MAX_STEPS        = 10
 MAX_TOTAL_REWARD = float(MAX_STEPS)   # max reward per step = 1.0
 SUCCESS_THRESHOLD = 0.50
-TEMPERATURE      = 0.0
+TEMPERATURE      = 0.7
 MAX_TOKENS       = 8
 
 SYSTEM_PROMPT = (
@@ -53,15 +47,12 @@ SYSTEM_PROMPT = (
     "Reply with ONLY the letter A or B — nothing else."
 )
 
-TASK_IDS = ["majority_dominance", "mixed_preferences", "fairness_collapse"]
-
 # ---------------------------------------------------------------------------
-# Structured logging (EXACT format — do not modify)
+# Structured logging (EXACT key=value format from sample spec)
 # ---------------------------------------------------------------------------
 
 def log_start(task: str, env: str, model: str) -> None:
-    payload = {"task": task, "env": env, "model": model}
-    print(f"[START] {json.dumps(payload)}", flush=True)
+    print(f"[START] task={task} env={env} model={model}", flush=True)
 
 
 def log_step(
@@ -71,14 +62,13 @@ def log_step(
     done:   bool,
     error:  Optional[str],
 ) -> None:
-    payload = {
-        "step":   step,
-        "action": action,
-        "reward": round(reward, 4),
-        "done":   done,
-        "error":  error,
-    }
-    print(f"[STEP] {json.dumps(payload)}", flush=True)
+    done_str = "true" if done else "false"
+    error_str = error if error else "null"
+    print(
+        f"[STEP] step={step} action={action} reward={reward:.2f} "
+        f"done={done_str} error={error_str}",
+        flush=True,
+    )
 
 
 def log_end(
@@ -87,27 +77,28 @@ def log_end(
     score:   float,
     rewards: List[float],
 ) -> None:
-    payload = {
-        "success": success,
-        "steps":   steps,
-        "score":   round(score, 4),
-        "rewards": [round(r, 4) for r in rewards],
-    }
-    print(f"[END] {json.dumps(payload)}", flush=True)
+    success_str = "true" if success else "false"
+    rewards_str = ",".join(f"{r:.2f}" for r in rewards)
+    print(
+        f"[END] success={success_str} steps={steps} score={score:.2f} "
+        f"rewards={rewards_str}",
+        flush=True,
+    )
+
 
 # ---------------------------------------------------------------------------
 # LLM agent
 # ---------------------------------------------------------------------------
 
 def get_model_action(
-    client:     OpenAI,
-    obs_prompt: str,
-    response_a: str,
-    response_b: str,
-    context:    str,
-    step:       int,
+    client:      OpenAI,
+    obs_prompt:  str,
+    response_a:  str,
+    response_b:  str,
+    context:     str,
+    step:        int,
     last_reward: float,
-    history:    List[str],
+    history:     List[str],
 ) -> str:
     """
     Call the LLM and parse its response as 'A' or 'B'.
@@ -133,26 +124,23 @@ def get_model_action(
             stream      = False,
         )
         text = (completion.choices[0].message.content or "").strip().upper()
-        # Parse: accept "A", "B", or first character
         if text and text[0] in ("A", "B"):
             return text[0]
-        return "A"  # safe default
+        return "A"
     except Exception as exc:
-        print(f"[DEBUG] LLM call failed at step {step}: {exc}", flush=True)
+        print(f"[DEBUG] Model request failed: {exc}", flush=True)
         return "A"
 
+
 # ---------------------------------------------------------------------------
-# Single task runner (async — matches OpenEnv sample pattern)
+# Single task runner
 # ---------------------------------------------------------------------------
 
 async def run_task(client: OpenAI, task_id: str) -> dict:
     """
     Run one full episode for a given task.
-
     Returns dict with: score, success, steps, rewards, grader_score.
     """
-    # Import here to avoid circular issues
-    import sys, os
     sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
     from env.environment import PreferenceAggregationEnv
     from env.models import Action
@@ -160,13 +148,13 @@ async def run_task(client: OpenAI, task_id: str) -> dict:
     env    = PreferenceAggregationEnv(task_id=task_id, seed=42)
     result = env.reset()  # OpenENV.reset()
 
-    rewards:      List[float]    = []
-    history:      List[str]      = []
-    steps_taken:  int            = 0
-    last_reward:  float          = 0.0
+    rewards:      List[float]     = []
+    history:      List[str]       = []
+    steps_taken:  int             = 0
+    last_reward:  float           = 0.0
     grader_score: Optional[float] = None
-    score:        float          = 0.0
-    success:      bool           = False
+    score:        float           = 0.0
+    success:      bool            = False
 
     log_start(task=task_id, env=BENCHMARK, model=MODEL_NAME)
 
@@ -193,7 +181,7 @@ async def run_task(client: OpenAI, task_id: str) -> dict:
             try:
                 result = env.step(Action(select_response=action_int))
             except Exception as e:
-                error = str(e)
+                error  = str(e)
                 reward = 0.0
                 done   = True
             else:
@@ -247,7 +235,7 @@ async def run_task(client: OpenAI, task_id: str) -> dict:
 
 
 # ---------------------------------------------------------------------------
-# Main (async — matches sample inference.py pattern exactly)
+# Main (async — matches sample inference.py pattern)
 # ---------------------------------------------------------------------------
 
 async def main() -> None:
