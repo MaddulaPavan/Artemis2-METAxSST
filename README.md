@@ -15,7 +15,7 @@ tags:
 
 **An OpenEnv environment that exposes structural fairness failure in RLHF reward aggregation.**
 
-> Built for the **MEGA AI Hackathon** — Meta x Hugging Face x Scaler School of Technology
+> Built for the **Meta OpenEnv Hackathon** — Meta x Hugging Face x Scaler School of Technology
 
 | | |
 |---|---|
@@ -226,12 +226,12 @@ Scores from running `inference.py` with a greedy LLM agent (always picks higher-
 
 This environment is **Team Artemis 2's** Round 1 submission for:
 
-> **India's Biggest MEGA AI Hackathon**  
+> **India's Biggest Meta OpenEnv Hackathon**  
 > Built on Meta's OpenEnv — the foundation for next-gen RL environments used by leading AI labs.
 
 | | |
 |---|---|
-| **Event** | MEGA AI Hackathon — Round 1 |
+| **Event** | Meta OpenEnv Hackathon — Round 1 |
 | **Organizers** | Meta, Hugging Face, Scaler School of Technology |
 | **Round** | Round 1 — Build a Mini RL Environment (25 Mar - 8 Apr 2026) |
 | **Team** | **Artemis 2** |
