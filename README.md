@@ -222,9 +222,20 @@ Scores from running `inference.py` with a greedy LLM agent (always picks higher-
 
 ---
 
-## References
+## Hackathon Submission
 
-1. Christiano et al. — *Deep RL from Human Preferences* (NeurIPS 2017)
-2. Bai et al. — *Training a Helpful and Harmless Assistant with RLHF* (Anthropic, 2022)
-3. Casper et al. — *Open Problems and Fundamental Limitations of RLHF* (TMLR 2023)
-4. Meta OpenEnv — [github.com/huggingface/open-env](https://github.com/huggingface/open-env)
+This environment is **Team Artemis 2's** Round 1 submission for:
+
+> **India's Biggest MEGA AI Hackathon**  
+> Built on Meta's OpenEnv — the foundation for next-gen RL environments used by leading AI labs.
+
+| | |
+|---|---|
+| **Event** | MEGA AI Hackathon — Round 1 |
+| **Organizers** | Meta, Hugging Face, Scaler School of Technology |
+| **Round** | Round 1 — Build a Mini RL Environment (25 Mar - 8 Apr 2026) |
+| **Team** | **Artemis 2** |
+| **Lead** | M P V S Gopinadh (`pavanmaddula44@gmail.com`) |
+| **Member** | Kappara Lakshmi Sindhu (`klsindhu68@gmail.com`) |
+| **Space** | [huggingface.co/spaces/PavanMaddula/Artemis2-SP](https://huggingface.co/spaces/PavanMaddula/Artemis2-SP) |
+| **GitHub** | [github.com/MaddulaPavan/Artemis2-METAxSST](https://github.com/MaddulaPavan/Artemis2-METAxSST) |
