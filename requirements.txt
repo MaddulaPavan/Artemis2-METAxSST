@@ -13,6 +13,7 @@ openai>=1.0.0
 
 # YAML parsing (openenv validate reads openenv.yaml)
 PyYAML>=6.0
+openenv-core>=0.2.0
 
 # Optional: diagnostic plots (visualize.py — not required for submission)
 matplotlib>=3.7.0
