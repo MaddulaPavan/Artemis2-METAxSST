@@ -1,0 +1,803 @@
+{
+  "config": {
+    "n_episodes": 500,
+    "seed": 2024,
+    "n_scenarios": 5
+  },
+  "scenarios": {
+    "majority_dominance": {
+      "scenario": {
+        "id": "A",
+        "name": "Majority Dominance",
+        "description": "Group 0 holds 60% population weight \u2014 classic RLHF setup",
+        "group_distribution": [
+          0.6,
+          0.3,
+          0.1
+        ],
+        "bias_strength": 1.0,
+        "noise_level": 0.0
+      },
+      "results": {
+        "standard": {
+          "random": {
+            "overall_accuracy": 0.488,
+            "accuracy_per_group": [
+              0.519298245614035,
+              0.45394736842105265,
+              0.42857142857142855
+            ],
+            "fairness_gap": 0.09072681704260649,
+            "variance_across_groups": 0.0014606700893140664,
+            "worst_group_accuracy": 0.42857142857142855,
+            "best_group_accuracy": 0.519298245614035,
+            "worst_group_id": 2,
+            "best_group_id": 0,
+            "group_totals": {
+              "0": 285,
+              "1": 152,
+              "2": 63
+            },
+            "group_correct": {
+              "0": 148,
+              "1": 69,
+              "2": 27
+            },
+            "total_episodes": 500
+          },
+          "greedy_aggregated": {
+            "overall_accuracy": 0.634,
+            "accuracy_per_group": [
+              1.0,
+              0.0,
+              0.5079365079365079
+            ],
+            "fairness_gap": 1.0,
+            "variance_across_groups": 0.16668066403516138,
+            "worst_group_accuracy": 0.0,
+            "best_group_accuracy": 1.0,
+            "worst_group_id": 1,
+            "best_group_id": 0,
+            "group_totals": {
+              "0": 285,
+              "1": 152,
+              "2": 63
+            },
+            "group_correct": {
+              "0": 285,
+              "1": 0,
+              "2": 32
+            },
+            "total_episodes": 500
+          },
+          "group_robust": {
+            "overall_accuracy": 0.514,
+            "accuracy_per_group": [
+              0.5087719298245614,
+              0.45394736842105265,
+              0.6825396825396826
+            ],
+            "fairness_gap": 0.2285923141186299,
+            "variance_across_groups": 0.00949504561009566,
+            "worst_group_accuracy": 0.45394736842105265,
+            "best_group_accuracy": 0.6825396825396826,
+            "worst_group_id": 1,
+            "best_group_id": 2,
+            "group_totals": {
+              "0": 285,
+              "1": 152,
+              "2": 63
+            },
+            "group_correct": {
+              "0": 145,
+              "1": 69,
+              "2": 43
+            },
+            "total_episodes": 500
+          }
+        },
+        "preference_aware": {
+          "oracle": {
+            "overall_accuracy": 1.0,
+            "accuracy_per_group": [
+              1.0,
+              1.0,
+              1.0
+            ],
+            "fairness_gap": 0.0,
+            "variance_across_groups": 0.0,
+            "worst_group_accuracy": 1.0,
+            "best_group_accuracy": 1.0,
+            "worst_group_id": 0,
+            "best_group_id": 0,
+            "group_totals": {
+              "0": 285,
+              "1": 152,
+              "2": 63
+            },
+            "group_correct": {
+              "0": 285,
+              "1": 152,
+              "2": 63
+            },
+            "total_episodes": 500
+          }
+        }
+      }
+    },
+    "balanced_groups": {
+      "scenario": {
+        "id": "B",
+        "name": "Balanced Groups",
+        "description": "Equal representation: no single group has population advantage",
+        "group_distribution": [
+          0.333,
+          0.333,
+          0.334
+        ],
+        "bias_strength": 1.0,
+        "noise_level": 0.0
+      },
+      "results": {
+        "standard": {
+          "random": {
+            "overall_accuracy": 0.478,
+            "accuracy_per_group": [
+              0.4583333333333333,
+              0.5086705202312138,
+              0.4644808743169399
+            ],
+            "fairness_gap": 0.050337186897880526,
+            "variance_across_groups": 0.0005027054945517983,
+            "worst_group_accuracy": 0.4583333333333333,
+            "best_group_accuracy": 0.5086705202312138,
+            "worst_group_id": 0,
+            "best_group_id": 1,
+            "group_totals": {
+              "0": 144,
+              "1": 173,
+              "2": 183
+            },
+            "group_correct": {
+              "0": 66,
+              "1": 88,
+              "2": 85
+            },
+            "total_episodes": 500
+          },
+          "greedy_aggregated": {
+            "overall_accuracy": 0.466,
+            "accuracy_per_group": [
+              1.0,
+              0.0,
+              0.48633879781420764
+            ],
+            "fairness_gap": 1.0,
+            "variance_across_groups": 0.16670813965448025,
+            "worst_group_accuracy": 0.0,
+            "best_group_accuracy": 1.0,
+            "worst_group_id": 1,
+            "best_group_id": 0,
+            "group_totals": {
+              "0": 144,
+              "1": 173,
+              "2": 183
+            },
+            "group_correct": {
+              "0": 144,
+              "1": 0,
+              "2": 89
+            },
+            "total_episodes": 500
+          },
+          "group_robust": {
+            "overall_accuracy": 0.536,
+            "accuracy_per_group": [
+              0.4791666666666667,
+              0.4797687861271676,
+              0.6338797814207651
+            ],
+            "fairness_gap": 0.15471311475409838,
+            "variance_across_groups": 0.005298523255015861,
+            "worst_group_accuracy": 0.4791666666666667,
+            "best_group_accuracy": 0.6338797814207651,
+            "worst_group_id": 0,
+            "best_group_id": 2,
+            "group_totals": {
+              "0": 144,
+              "1": 173,
+              "2": 183
+            },
+            "group_correct": {
+              "0": 69,
+              "1": 83,
+              "2": 116
+            },
+            "total_episodes": 500
+          }
+        },
+        "preference_aware": {
+          "oracle": {
+            "overall_accuracy": 1.0,
+            "accuracy_per_group": [
+              1.0,
+              1.0,
+              1.0
+            ],
+            "fairness_gap": 0.0,
+            "variance_across_groups": 0.0,
+            "worst_group_accuracy": 1.0,
+            "best_group_accuracy": 1.0,
+            "worst_group_id": 0,
+            "best_group_id": 0,
+            "group_totals": {
+              "0": 144,
+              "1": 173,
+              "2": 183
+            },
+            "group_correct": {
+              "0": 144,
+              "1": 173,
+              "2": 183
+            },
+            "total_episodes": 500
+          }
+        }
+      }
+    },
+    "minority_flip": {
+      "scenario": {
+        "id": "C",
+        "name": "Minority Flip",
+        "description": "Former minority groups (1+2) hold 80% combined weight",
+        "group_distribution": [
+          0.2,
+          0.4,
+          0.4
+        ],
+        "bias_strength": 1.0,
+        "noise_level": 0.0
+      },
+      "results": {
+        "standard": {
+          "random": {
+            "overall_accuracy": 0.52,
+            "accuracy_per_group": [
+              0.5662650602409639,
+              0.4603960396039604,
+              0.5581395348837209
+            ],
+            "fairness_gap": 0.10586902063700349,
+            "variance_across_groups": 0.002314229395830448,
+            "worst_group_accuracy": 0.4603960396039604,
+            "best_group_accuracy": 0.5662650602409639,
+            "worst_group_id": 1,
+            "best_group_id": 0,
+            "group_totals": {
+              "0": 83,
+              "1": 202,
+              "2": 215
+            },
+            "group_correct": {
+              "0": 47,
+              "1": 93,
+              "2": 120
+            },
+            "total_episodes": 500
+          },
+          "greedy_aggregated": {
+            "overall_accuracy": 0.38,
+            "accuracy_per_group": [
+              1.0,
+              0.0,
+              0.49767441860465117
+            ],
+            "fairness_gap": 1.0,
+            "variance_across_groups": 0.166667868517517,
+            "worst_group_accuracy": 0.0,
+            "best_group_accuracy": 1.0,
+            "worst_group_id": 1,
+            "best_group_id": 0,
+            "group_totals": {
+              "0": 83,
+              "1": 202,
+              "2": 215
+            },
+            "group_correct": {
+              "0": 83,
+              "1": 0,
+              "2": 107
+            },
+            "total_episodes": 500
+          },
+          "group_robust": {
+            "overall_accuracy": 0.584,
+            "accuracy_per_group": [
+              0.5662650602409639,
+              0.5297029702970297,
+              0.641860465116279
+            ],
+            "fairness_gap": 0.1121574948192493,
+            "variance_across_groups": 0.002181195033717898,
+            "worst_group_accuracy": 0.5297029702970297,
+            "best_group_accuracy": 0.641860465116279,
+            "worst_group_id": 1,
+            "best_group_id": 2,
+            "group_totals": {
+              "0": 83,
+              "1": 202,
+              "2": 215
+            },
+            "group_correct": {
+              "0": 47,
+              "1": 107,
+              "2": 138
+            },
+            "total_episodes": 500
+          }
+        },
+        "preference_aware": {
+          "oracle": {
+            "overall_accuracy": 1.0,
+            "accuracy_per_group": [
+              1.0,
+              1.0,
+              1.0
+            ],
+            "fairness_gap": 0.0,
+            "variance_across_groups": 0.0,
+            "worst_group_accuracy": 1.0,
+            "best_group_accuracy": 1.0,
+            "worst_group_id": 0,
+            "best_group_id": 0,
+            "group_totals": {
+              "0": 83,
+              "1": 202,
+              "2": 215
+            },
+            "group_correct": {
+              "0": 83,
+              "1": 202,
+              "2": 215
+            },
+            "total_episodes": 500
+          }
+        }
+      }
+    },
+    "reduced_bias": {
+      "scenario": {
+        "id": "D",
+        "name": "Reduced Bias (bias=0.3)",
+        "description": "Majority distribution but bias_strength=0.3 (moderate interpolation)",
+        "group_distribution": [
+          0.6,
+          0.3,
+          0.1
+        ],
+        "bias_strength": 0.3,
+        "noise_level": 0.0
+      },
+      "results": {
+        "standard": {
+          "random": {
+            "overall_accuracy": 0.488,
+            "accuracy_per_group": [
+              0.47017543859649125,
+              0.5,
+              0.5396825396825397
+            ],
+            "fairness_gap": 0.0695071010860484,
+            "variance_across_groups": 0.0008106050577726833,
+            "worst_group_accuracy": 0.47017543859649125,
+            "best_group_accuracy": 0.5396825396825397,
+            "worst_group_id": 0,
+            "best_group_id": 2,
+            "group_totals": {
+              "0": 285,
+              "1": 152,
+              "2": 63
+            },
+            "group_correct": {
+              "0": 134,
+              "1": 76,
+              "2": 34
+            },
+            "total_episodes": 500
+          },
+          "greedy_aggregated": {
+            "overall_accuracy": 0.634,
+            "accuracy_per_group": [
+              1.0,
+              0.0,
+              0.5079365079365079
+            ],
+            "fairness_gap": 1.0,
+            "variance_across_groups": 0.16668066403516138,
+            "worst_group_accuracy": 0.0,
+            "best_group_accuracy": 1.0,
+            "worst_group_id": 1,
+            "best_group_id": 0,
+            "group_totals": {
+              "0": 285,
+              "1": 152,
+              "2": 63
+            },
+            "group_correct": {
+              "0": 285,
+              "1": 0,
+              "2": 32
+            },
+            "total_episodes": 500
+          },
+          "group_robust": {
+            "overall_accuracy": 0.504,
+            "accuracy_per_group": [
+              0.49122807017543857,
+              0.47368421052631576,
+              0.6349206349206349
+            ],
+            "fairness_gap": 0.16123642439431912,
+            "variance_across_groups": 0.005216947191767282,
+            "worst_group_accuracy": 0.47368421052631576,
+            "best_group_accuracy": 0.6349206349206349,
+            "worst_group_id": 1,
+            "best_group_id": 2,
+            "group_totals": {
+              "0": 285,
+              "1": 152,
+              "2": 63
+            },
+            "group_correct": {
+              "0": 140,
+              "1": 72,
+              "2": 40
+            },
+            "total_episodes": 500
+          }
+        },
+        "preference_aware": {
+          "oracle": {
+            "overall_accuracy": 1.0,
+            "accuracy_per_group": [
+              1.0,
+              1.0,
+              1.0
+            ],
+            "fairness_gap": 0.0,
+            "variance_across_groups": 0.0,
+            "worst_group_accuracy": 1.0,
+            "best_group_accuracy": 1.0,
+            "worst_group_id": 0,
+            "best_group_id": 0,
+            "group_totals": {
+              "0": 285,
+              "1": 152,
+              "2": 63
+            },
+            "group_correct": {
+              "0": 285,
+              "1": 152,
+              "2": 63
+            },
+            "total_episodes": 500
+          }
+        }
+      }
+    },
+    "noisy_rewards": {
+      "scenario": {
+        "id": "E",
+        "name": "Noisy Rewards (sigma=0.3)",
+        "description": "Majority distribution with Gaussian reward corruption (sigma=0.3)",
+        "group_distribution": [
+          0.6,
+          0.3,
+          0.1
+        ],
+        "bias_strength": 1.0,
+        "noise_level": 0.3
+      },
+      "results": {
+        "standard": {
+          "random": {
+            "overall_accuracy": 0.51,
+            "accuracy_per_group": [
+              0.5263157894736842,
+              0.4473684210526316,
+              0.5873015873015873
+            ],
+            "fairness_gap": 0.13993316624895574,
+            "variance_across_groups": 0.0032814717259747974,
+            "worst_group_accuracy": 0.4473684210526316,
+            "best_group_accuracy": 0.5873015873015873,
+            "worst_group_id": 1,
+            "best_group_id": 2,
+            "group_totals": {
+              "0": 285,
+              "1": 152,
+              "2": 63
+            },
+            "group_correct": {
+              "0": 150,
+              "1": 68,
+              "2": 37
+            },
+            "total_episodes": 500
+          },
+          "greedy_aggregated": {
+            "overall_accuracy": 0.634,
+            "accuracy_per_group": [
+              1.0,
+              0.0,
+              0.5079365079365079
+            ],
+            "fairness_gap": 1.0,
+            "variance_across_groups": 0.16668066403516138,
+            "worst_group_accuracy": 0.0,
+            "best_group_accuracy": 1.0,
+            "worst_group_id": 1,
+            "best_group_id": 0,
+            "group_totals": {
+              "0": 285,
+              "1": 152,
+              "2": 63
+            },
+            "group_correct": {
+              "0": 285,
+              "1": 0,
+              "2": 32
+            },
+            "total_episodes": 500
+          },
+          "group_robust": {
+            "overall_accuracy": 0.502,
+            "accuracy_per_group": [
+              0.4280701754385965,
+              0.5789473684210527,
+              0.6507936507936508
+            ],
+            "fairness_gap": 0.22272347535505432,
+            "variance_across_groups": 0.008614618014140213,
+            "worst_group_accuracy": 0.4280701754385965,
+            "best_group_accuracy": 0.6507936507936508,
+            "worst_group_id": 0,
+            "best_group_id": 2,
+            "group_totals": {
+              "0": 285,
+              "1": 152,
+              "2": 63
+            },
+            "group_correct": {
+              "0": 122,
+              "1": 88,
+              "2": 41
+            },
+            "total_episodes": 500
+          }
+        },
+        "preference_aware": {
+          "oracle": {
+            "overall_accuracy": 1.0,
+            "accuracy_per_group": [
+              1.0,
+              1.0,
+              1.0
+            ],
+            "fairness_gap": 0.0,
+            "variance_across_groups": 0.0,
+            "worst_group_accuracy": 1.0,
+            "best_group_accuracy": 1.0,
+            "worst_group_id": 0,
+            "best_group_id": 0,
+            "group_totals": {
+              "0": 285,
+              "1": 152,
+              "2": 63
+            },
+            "group_correct": {
+              "0": 285,
+              "1": 152,
+              "2": 63
+            },
+            "total_episodes": 500
+          }
+        }
+      }
+    }
+  },
+  "bias_sweep": [
+    {
+      "bias_strength": 0.0,
+      "greedy_fairness_gap": 1.0,
+      "robust_fairness_gap": 0.2761904761904762,
+      "greedy_worst_group_acc": 0.0,
+      "robust_worst_group_acc": 0.5333333333333333,
+      "greedy_accuracy_per_group": [
+        1.0,
+        0.0,
+        0.5079365079365079
+      ],
+      "robust_accuracy_per_group": [
+        0.5333333333333333,
+        0.5394736842105263,
+        0.8095238095238095
+      ]
+    },
+    {
+      "bias_strength": 0.1,
+      "greedy_fairness_gap": 1.0,
+      "robust_fairness_gap": 0.1229114452798663,
+      "greedy_worst_group_acc": 0.0,
+      "robust_worst_group_acc": 0.48026315789473684,
+      "greedy_accuracy_per_group": [
+        1.0,
+        0.0,
+        0.5079365079365079
+      ],
+      "robust_accuracy_per_group": [
+        0.49122807017543857,
+        0.48026315789473684,
+        0.6031746031746031
+      ]
+    },
+    {
+      "bias_strength": 0.2,
+      "greedy_fairness_gap": 1.0,
+      "robust_fairness_gap": 0.3102548036758563,
+      "greedy_worst_group_acc": 0.0,
+      "robust_worst_group_acc": 0.3881578947368421,
+      "greedy_accuracy_per_group": [
+        1.0,
+        0.0,
+        0.5079365079365079
+      ],
+      "robust_accuracy_per_group": [
+        0.47017543859649125,
+        0.3881578947368421,
+        0.6984126984126984
+      ]
+    },
+    {
+      "bias_strength": 0.3,
+      "greedy_fairness_gap": 1.0,
+      "robust_fairness_gap": 0.1682539682539682,
+      "greedy_worst_group_acc": 0.0,
+      "robust_worst_group_acc": 0.4666666666666667,
+      "greedy_accuracy_per_group": [
+        1.0,
+        0.0,
+        0.5079365079365079
+      ],
+      "robust_accuracy_per_group": [
+        0.4666666666666667,
+        0.5131578947368421,
+        0.6349206349206349
+      ]
+    },
+    {
+      "bias_strength": 0.4,
+      "greedy_fairness_gap": 1.0,
+      "robust_fairness_gap": 0.2758563074352548,
+      "greedy_worst_group_acc": 0.0,
+      "robust_worst_group_acc": 0.47017543859649125,
+      "greedy_accuracy_per_group": [
+        1.0,
+        0.0,
+        0.5079365079365079
+      ],
+      "robust_accuracy_per_group": [
+        0.47017543859649125,
+        0.5526315789473685,
+        0.746031746031746
+      ]
+    },
+    {
+      "bias_strength": 0.5,
+      "greedy_fairness_gap": 1.0,
+      "robust_fairness_gap": 0.27621136173767746,
+      "greedy_worst_group_acc": 0.0,
+      "robust_worst_group_acc": 0.45394736842105265,
+      "greedy_accuracy_per_group": [
+        1.0,
+        0.0,
+        0.5079365079365079
+      ],
+      "robust_accuracy_per_group": [
+        0.48771929824561405,
+        0.45394736842105265,
+        0.7301587301587301
+      ]
+    },
+    {
+      "bias_strength": 0.6,
+      "greedy_fairness_gap": 1.0,
+      "robust_fairness_gap": 0.2140350877192982,
+      "greedy_worst_group_acc": 0.0,
+      "robust_worst_group_acc": 0.45263157894736844,
+      "greedy_accuracy_per_group": [
+        1.0,
+        0.0,
+        0.5079365079365079
+      ],
+      "robust_accuracy_per_group": [
+        0.45263157894736844,
+        0.5,
+        0.6666666666666666
+      ]
+    },
+    {
+      "bias_strength": 0.7,
+      "greedy_fairness_gap": 1.0,
+      "robust_fairness_gap": 0.20183792815371765,
+      "greedy_worst_group_acc": 0.0,
+      "robust_worst_group_acc": 0.4807017543859649,
+      "greedy_accuracy_per_group": [
+        1.0,
+        0.0,
+        0.5079365079365079
+      ],
+      "robust_accuracy_per_group": [
+        0.4807017543859649,
+        0.5592105263157895,
+        0.6825396825396826
+      ]
+    },
+    {
+      "bias_strength": 0.8,
+      "greedy_fairness_gap": 1.0,
+      "robust_fairness_gap": 0.10877192982456141,
+      "greedy_worst_group_acc": 0.0,
+      "robust_worst_group_acc": 0.47017543859649125,
+      "greedy_accuracy_per_group": [
+        1.0,
+        0.0,
+        0.5079365079365079
+      ],
+      "robust_accuracy_per_group": [
+        0.47017543859649125,
+        0.5789473684210527,
+        0.5079365079365079
+      ]
+    },
+    {
+      "bias_strength": 0.9,
+      "greedy_fairness_gap": 1.0,
+      "robust_fairness_gap": 0.2711988304093568,
+      "greedy_worst_group_acc": 0.0,
+      "robust_worst_group_acc": 0.506578947368421,
+      "greedy_accuracy_per_group": [
+        1.0,
+        0.0,
+        0.5079365079365079
+      ],
+      "robust_accuracy_per_group": [
+        0.5298245614035088,
+        0.506578947368421,
+        0.7777777777777778
+      ]
+    },
+    {
+      "bias_strength": 1.0,
+      "greedy_fairness_gap": 1.0,
+      "robust_fairness_gap": 0.20614035087719296,
+      "greedy_worst_group_acc": 0.0,
+      "robust_worst_group_acc": 0.4605263157894737,
+      "greedy_accuracy_per_group": [
+        1.0,
+        0.0,
+        0.5079365079365079
+      ],
+      "robust_accuracy_per_group": [
+        0.4982456140350877,
+        0.4605263157894737,
+        0.6666666666666666
+      ]
+    }
+  ],
+  "plot_paths": [
+    "output\\group_accuracy_by_scenario.png",
+    "output\\fairness_gap_comparison.png",
+    "output\\bias_strength_sweep.png"
+  ]
+}

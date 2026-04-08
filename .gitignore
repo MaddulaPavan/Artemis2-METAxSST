@@ -1,0 +1,37 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+.Python
+*.egg-info/
+dist/
+build/
+.eggs/
+
+# Env
+.env
+.venv
+venv/
+env_local/
+
+# Jupyter
+.ipynb_checkpoints/
+*.ipynb
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+
+# Scratch files (not needed for submission)
+crosscheck.py
+crosscheck_output.txt
+test_env.py
+output_v2.txt
+submission_status.md
+
+# Keep output/ plots (they demonstrate results)
+# output/
