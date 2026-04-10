@@ -27,6 +27,7 @@ from env.reward import (
     compute_fairness_gap,
     counterfactual_reward_margin,
     sharpen_aggregated_reward,
+    technical_score,
     GROUP_NAMES,
 )
 
@@ -206,6 +207,23 @@ class PreferenceAggregationEnv:
             )
 
         margin = counterfactual_reward_margin(obs.response_a, obs.response_b, dist)
+
+        len_a = len(obs.response_a.strip())
+        len_b = len(obs.response_b.strip())
+        tech_a = technical_score(obs.response_a)
+        tech_b = technical_score(obs.response_b)
+        preferred_actions = {
+            "concise": 0 if group_reward(0, 0, obs.response_a, obs.response_b) >= group_reward(0, 1, obs.response_a, obs.response_b) else 1,
+            "detailed": 0 if group_reward(1, 0, obs.response_a, obs.response_b) >= group_reward(1, 1, obs.response_a, obs.response_b) else 1,
+            "technical": 0 if group_reward(2, 0, obs.response_a, obs.response_b) >= group_reward(2, 1, obs.response_a, obs.response_b) else 1,
+        }
+        if abs(tech_a - tech_b) >= 0.05:
+            decision_basis_hint = "technical_density"
+        elif abs(len_a - len_b) >= 25:
+            decision_basis_hint = "length"
+        else:
+            decision_basis_hint = "mixed"
+
         breakdown = {
             f"group_{g}_weighted": round(dist[g] * per_group[g], 6)
             for g in range(len(dist))
@@ -219,6 +237,14 @@ class PreferenceAggregationEnv:
             "per_group_rewards": per_group,
             "weight_breakdown": breakdown,
             "action_margin": round(margin, 6),
+            "pair_signals": {
+                "len_a": len_a,
+                "len_b": len_b,
+                "technical_a": round(tech_a, 6),
+                "technical_b": round(tech_b, 6),
+                "preferred_actions": preferred_actions,
+                "decision_basis_hint": decision_basis_hint,
+            },
             "hidden_group":  self._hidden_group,
             "group_name":    GROUP_NAMES[self._hidden_group],
             "fairness_gap":  round(gap, 4),

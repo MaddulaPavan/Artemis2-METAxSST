@@ -36,6 +36,8 @@ Standard RLHF aggregates preferences from diverse annotators into a single rewar
 
 This is not a game or a toy. It models a real task (preference annotation) and exposes a real limitation of a system used to align every major LLM.
 
+**Baseline note:** The included baseline can adapt its decision strategy from the `EASY — / MEDIUM — / HARD —` context prefixes (prefix-conditioned), improving reproducibility and evaluation stability.
+
 ---
 
 ## Key Result
