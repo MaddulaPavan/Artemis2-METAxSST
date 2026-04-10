@@ -309,17 +309,14 @@ pytest -q
 
 ---
 
-## Hackathon Submission
+## Hackathon Submission with Team Details
 
 This environment is **Team Artemis 2's** Round 1 submission for:
 
-> **India's Biggest Meta OpenEnv Hackathon**  
-> Built on Meta's OpenEnv — the foundation for next-gen RL environments used by leading AI labs.
+> **India's Biggest Meta OpenEnv Hackathon**
 
 | | |
 |---|---|
-| **Event** | Meta OpenEnv Hackathon — Round 1 |
-| **Round** | Round 1 — Build a Mini RL Environment (check dashboard for latest deadline) |
 | **Team** | **Artemis 2** |
 | **Lead** | M P V S Gopinadh (`pavanmaddula44@gmail.com`) |
 | **Member** | Kappara Lakshmi Sindhu (`klsindhu68@gmail.com`) |
