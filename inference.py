@@ -9,6 +9,11 @@ REQUIRED ENVIRONMENT VARIABLES:
   HF_TOKEN         Preferred API key (Hugging Face / router)
   OPENAI_API_KEY   Alternative API key (OpenAI-compatible; accepted if HF_TOKEN unset)
 
+OPTIONAL:
+  INFERENCE_MODE   "llm" (default) or "heuristic" — deterministic baseline that picks
+                   the response with higher population-weighted aggregate reward
+                   (strong, reproducible; uses task weights only, no hidden group).
+
 STDOUT FORMAT (mandatory — any deviation fails evaluation):
   [START] task=<task_name> env=<benchmark> model=<model_name>
   [STEP]  step=<n> action=<action_str> reward=<0.00> done=<true|false> error=<msg|null>
@@ -34,6 +39,8 @@ API_KEY: str = (
 )
 API_BASE_URL: str = os.getenv("API_BASE_URL") or "https://router.huggingface.co/v1"
 MODEL_NAME:   str = os.getenv("MODEL_NAME") or "Qwen/Qwen2.5-72B-Instruct"
+INFERENCE_MODE: str = os.getenv("INFERENCE_MODE", "llm").strip().lower()
+HEURISTIC_MODEL_LABEL = "heuristic-population-aggregate"
 
 # ---------------------------------------------------------------------------
 # Constants
@@ -48,10 +55,16 @@ TEMPERATURE      = 0.7
 MAX_TOKENS       = 8
 
 SYSTEM_PROMPT = (
-    "You are evaluating AI-generated responses. "
-    "Given a prompt and two responses (A and B), select the one that better serves the user. "
+    "You are collecting RLHF-style preferences between two model responses. "
+    "Read the Context line first — it states who the answer should serve and what to optimize "
+    "(brevity vs depth vs technical density). "
+    "Choose the single response (A or B) that best matches that Context for the user question. "
     "Reply with ONLY the letter A or B — nothing else."
 )
+
+
+def model_label_for_logs() -> str:
+    return HEURISTIC_MODEL_LABEL if INFERENCE_MODE == "heuristic" else MODEL_NAME
 
 # ---------------------------------------------------------------------------
 # Structured logging (EXACT key=value format from sample spec)
@@ -150,6 +163,8 @@ async def run_task(client: OpenAI, task_id: str) -> dict:
     sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
     from env.environment import PreferenceAggregationEnv
     from env.models import Action
+    from env.tasks import TASKS
+    from env.reward import compute_aggregated_reward
 
     env    = PreferenceAggregationEnv(task_id=task_id, seed=42)
     result = env.reset()  # OpenENV.reset()
@@ -162,24 +177,33 @@ async def run_task(client: OpenAI, task_id: str) -> dict:
     score:        float           = 0.0
     success:      bool            = False
 
-    log_start(task=task_id, env=BENCHMARK, model=MODEL_NAME)
+    log_start(task=task_id, env=BENCHMARK, model=model_label_for_logs())
 
     try:
         for step in range(1, MAX_STEPS + 1):
             obs   = result.observation
             error = None
 
-            # Get LLM decision
-            choice_letter = get_model_action(
-                client      = client,
-                obs_prompt  = obs.prompt,
-                response_a  = obs.response_a,
-                response_b  = obs.response_b,
-                context     = obs.context,
-                step        = step,
-                last_reward = last_reward,
-                history     = history,
-            )
+            if INFERENCE_MODE == "heuristic":
+                weights = TASKS[task_id]["group_distribution"]
+                r0 = compute_aggregated_reward(
+                    0, obs.response_a, obs.response_b, weights
+                )
+                r1 = compute_aggregated_reward(
+                    1, obs.response_a, obs.response_b, weights
+                )
+                choice_letter = "A" if r0 >= r1 else "B"
+            else:
+                choice_letter = get_model_action(
+                    client      = client,
+                    obs_prompt  = obs.prompt,
+                    response_a  = obs.response_a,
+                    response_b  = obs.response_b,
+                    context     = obs.context,
+                    step        = step,
+                    last_reward = last_reward,
+                    history     = history,
+                )
 
             action_int = 0 if choice_letter == "A" else 1
 
@@ -245,8 +269,11 @@ async def run_task(client: OpenAI, task_id: str) -> dict:
 # ---------------------------------------------------------------------------
 
 async def main() -> None:
-    if not API_KEY:
-        print("[DEBUG] HF_TOKEN not set. Set HF_TOKEN to your API key.", flush=True)
+    if not API_KEY and INFERENCE_MODE != "heuristic":
+        print(
+            "[DEBUG] HF_TOKEN / OPENAI_API_KEY not set. Set one for LLM mode.",
+            flush=True,
+        )
 
     client = OpenAI(base_url=API_BASE_URL, api_key=API_KEY if API_KEY else "dummy")
 

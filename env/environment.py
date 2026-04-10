@@ -25,8 +25,18 @@ from env.reward import (
     compute_all_group_rewards,
     compute_aggregated_reward,
     compute_fairness_gap,
+    counterfactual_reward_margin,
+    sharpen_aggregated_reward,
     GROUP_NAMES,
 )
+
+def _reward_sharpen_gamma() -> float:
+    raw = os.getenv("REWARD_SHARPEN_GAMMA", "1.35").strip()
+    try:
+        g = float(raw)
+    except ValueError:
+        g = 1.35
+    return max(1.0, min(g, 2.5))
 
 # ---------------------------------------------------------------------------
 # Core environment class
@@ -147,16 +157,19 @@ class PreferenceAggregationEnv:
         agg       = compute_aggregated_reward(act, obs.response_a, obs.response_b, dist)
         true_r    = group_reward(self._hidden_group, act, obs.response_a, obs.response_b)
 
+        gamma = _reward_sharpen_gamma()
+        step_reward = sharpen_aggregated_reward(agg, gamma)
+
         # Running fairness gap
         self._episode_history.append({
             "step":         self._step_count + 1,
             "action":       act,
-            "reward":       agg,
+            "reward":       step_reward,
             "true_reward":  true_r,
             "group":        self._hidden_group,
             "group_rewards": per_group,
         })
-        self._episode_rewards.append(agg)
+        self._episode_rewards.append(step_reward)
         self._step_count += 1
 
         gap   = compute_fairness_gap([h["group_rewards"] for h in self._episode_history])
@@ -174,12 +187,13 @@ class PreferenceAggregationEnv:
                 prompt          = sample["prompt"],
                 response_a      = sample["response_a"],
                 response_b      = sample["response_b"],
-                previous_reward = agg,
+                previous_reward = step_reward,
                 step_count      = self._step_count,
                 task_id         = self.task_id,
                 context         = self.task["context"],
             )
 
+        margin = counterfactual_reward_margin(obs.response_a, obs.response_b, dist)
         breakdown = {
             f"group_{g}_weighted": round(dist[g] * per_group[g], 6)
             for g in range(len(dist))
@@ -187,8 +201,11 @@ class PreferenceAggregationEnv:
         info: Dict[str, Any] = {
             "true_reward":   true_r,
             "aggregated_reward": agg,
+            "policy_reward": step_reward,
+            "reward_sharpen_gamma": gamma,
             "per_group_rewards": per_group,
             "weight_breakdown": breakdown,
+            "action_margin": round(margin, 6),
             "hidden_group":  self._hidden_group,
             "group_name":    GROUP_NAMES[self._hidden_group],
             "fairness_gap":  round(gap, 4),
@@ -199,7 +216,7 @@ class PreferenceAggregationEnv:
 
         return StepResult(
             observation = self._obs,
-            reward      = agg,
+            reward      = step_reward,
             done        = done,
             info        = info,
         )

@@ -121,16 +121,20 @@ Episode length \(T\) is `max_steps` (10).
 
 ## Reward Function
 
+**True RLHF aggregate** (population-weighted; used for analysis and logged as `aggregated_reward` in `info`):
+
 ```
-reward = sum( group_weight[g] * group_reward(g, action) )  for g in {0, 1, 2}
+aggregated_reward = sum( group_weight[g] * group_reward(g, action) )  for g in {0, 1, 2}
 ```
 
-- **Range:** [0.0, 1.0] per step (weighted sum of per-group binary satisfactions)
+**Policy-facing reward** (returned as `StepResult.reward` and in `previous_reward`): a mild **sharpening** maps \([0,1]\to[0,1]\) toward clearer highs/lows so agents see stronger contrast between A and B when margins are small. Graders use **only** per-step `group_rewards`, so evaluation remains tied to actual subgroup satisfaction.
+
+- Default sharpening: `REWARD_SHARPEN_GAMMA=1.35` (set to `1.0` to disable sharpening).
+- **Range:** [0.0, 1.0] per step
 - **Dense:** computed every step, not only at episode end
-- **Partial:** per-step signal varies with the chosen response and the active prompt pair
-- **Meaningful:** optimizing the scalar aggregate can **conflict** with subgroup fairness — the core RLHF tension modeled here
+- **Contrast diagnostic:** `info["action_margin"]` is \(|R(A)-R(B)|\) on the **raw** aggregate for the current prompt pair.
 
-The `info` dict includes `per_group_rewards`, `fairness_gap`, `true_reward`, `hidden_group`, and `weight_breakdown` (per-group contribution to the aggregated reward).
+The `info` dict includes `aggregated_reward`, `policy_reward`, `per_group_rewards`, `fairness_gap`, `true_reward`, `hidden_group`, `weight_breakdown`, and `action_margin`.
 
 ---
 
@@ -232,12 +236,21 @@ Run **multiple seeds** locally by changing `seed` in `PreferenceAggregationEnv` 
 | `MODEL_NAME` | Model identifier | `Qwen/Qwen2.5-72B-Instruct` |
 | `HF_TOKEN` | Primary API key (HF router / compatible) | (set for real runs) |
 | `OPENAI_API_KEY` | Alternative API key (accepted if `HF_TOKEN` unset) | — |
+| `INFERENCE_MODE` | `llm` (default) or `heuristic` — deterministic argmax on population-weighted aggregate | `llm` |
+| `REWARD_SHARPEN_GAMMA` | Sharpen policy-facing reward; `1.0` = off | `1.35` |
 
 ---
 
 ## Baseline Scores
 
-`inference.py` runs an **LLM policy** (OpenAI client) that chooses **A or B** from the prompt; it is **not** an oracle that reads hidden rewards.
+Default `inference.py` uses an **LLM policy** (OpenAI client). For a **deterministic, reproducible baseline** that does not call a model, run:
+
+```bash
+set INFERENCE_MODE=heuristic
+python inference.py
+```
+
+That policy picks A or B by **maximizing the same population-weighted aggregate** defined in the env (public weights only — **no hidden group**). It is strong on easy/medium tasks and is useful for score calibration; it does not “solve” the hard fairness objective.
 
 Illustrative outcomes (vary with model and temperature):
 

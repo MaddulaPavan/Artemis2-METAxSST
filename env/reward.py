@@ -65,6 +65,18 @@ def compute_all_group_rewards(action: int, response_a: str, response_b: str) -> 
     return [group_reward(g, action, response_a, response_b) for g in range(3)]
 
 
+def sharpen_aggregated_reward(x: float, gamma: float = 1.35) -> float:
+    """
+    Map [0,1] → [0,1] with stronger separation toward 0 and 1 (clearer policy signal).
+
+    gamma=1 is identity. Does not change per-group satisfaction; graders use group_rewards only.
+    """
+    if gamma <= 1.0:
+        return max(0.0, min(1.0, x))
+    y = 0.5 + gamma * (x - 0.5)
+    return max(0.0, min(1.0, y))
+
+
 def compute_aggregated_reward(
     action: int,
     response_a: str,
@@ -81,6 +93,17 @@ def compute_aggregated_reward(
     for g, w in enumerate(weights):
         total += w * group_reward(g, action, response_a, response_b)
     return total
+
+
+def counterfactual_reward_margin(
+    response_a: str,
+    response_b: str,
+    weights: List[float],
+) -> float:
+    """|R(choose A) - R(choose B)| under the same population weights (diagnostic)."""
+    r0 = compute_aggregated_reward(0, response_a, response_b, weights)
+    r1 = compute_aggregated_reward(1, response_a, response_b, weights)
+    return abs(r0 - r1)
 
 
 def compute_fairness_gap(group_rewards_history: List[List[float]]) -> float:
