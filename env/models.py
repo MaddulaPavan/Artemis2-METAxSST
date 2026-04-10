@@ -68,4 +68,5 @@ class EnvironmentState(BaseModel):
     episode_rewards: List[float]
     group_distribution: List[float]
     effective_weights: List[float]
+    fairness_gap: float = 0.0
     grader_score: Optional[float] = None

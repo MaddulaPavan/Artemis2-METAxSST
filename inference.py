@@ -4,9 +4,10 @@ inference.py — Baseline inference script for PreferenceAggregationEnv.
 Runs an LLM agent against all 3 tasks and emits structured logs.
 
 REQUIRED ENVIRONMENT VARIABLES:
-  API_BASE_URL   LLM API endpoint (OpenAI-compatible)
-  MODEL_NAME     Model identifier
-  HF_TOKEN       API key / HuggingFace token
+  API_BASE_URL     LLM API endpoint (OpenAI-compatible)
+  MODEL_NAME       Model identifier
+  HF_TOKEN         Preferred API key (Hugging Face / router)
+  OPENAI_API_KEY   Alternative API key (OpenAI-compatible; accepted if HF_TOKEN unset)
 
 STDOUT FORMAT (mandatory — any deviation fails evaluation):
   [START] task=<task_name> env=<benchmark> model=<model_name>
@@ -25,7 +26,12 @@ from openai import OpenAI
 # Environment variables (EXACT names required by spec)
 # ---------------------------------------------------------------------------
 
-API_KEY:      str = os.getenv("HF_TOKEN") or os.getenv("API_KEY") or ""
+API_KEY: str = (
+    os.getenv("HF_TOKEN")
+    or os.getenv("OPENAI_API_KEY")
+    or os.getenv("API_KEY")
+    or ""
+)
 API_BASE_URL: str = os.getenv("API_BASE_URL") or "https://router.huggingface.co/v1"
 MODEL_NAME:   str = os.getenv("MODEL_NAME") or "Qwen/Qwen2.5-72B-Instruct"
 

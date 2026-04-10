@@ -23,7 +23,9 @@ server = "server.app:main"
 serve = "server.app:main"
 
 [project.optional-dependencies]
-dev = []
+dev = [
+    "pytest>=7.0",
+]
 
 [tool.setuptools.packages.find]
 include = ["env*", "server*"]

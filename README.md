@@ -40,13 +40,15 @@ This is not a game or a toy. It models a real task (preference annotation) and e
 
 ## Key Result
 
+Typical **grader** outcomes (episode-end; deterministic given actions):
+
 ```
-Task 1 (Easy)   — Grader: 1.00   Agent follows majority, scores well
-Task 2 (Medium) — Grader: 0.37   Conflicting signals, partial success
-Task 3 (Hard)   — Grader: 0.00   Structural impossibility, all agents fail
+Task 1 (Easy)   — Grader ≈ 1.0   Majority (concise) preference is consistently satisfied
+Task 2 (Medium) — Grader ≈ 0.3–0.5   Conflicting population weights → partial group satisfaction
+Task 3 (Hard)   — Grader ≈ 0.0   Deterministic policies: fairness gap → 1.0 → score 0.0
 ```
 
-Any deterministic policy scores **0.0** on the hard task. This is not a capability gap — it's a design limitation of aggregated reward objectives.
+The hard task’s grader is **near zero for deterministic policies** because subgroup satisfaction rates cannot be equalized without group identity. A uniform random policy can achieve a small non-zero expected grader (see `expected_baseline` in `openenv.yaml`). This is a **structural limitation** of scalar aggregated objectives, not a raw capability score on a single fixed answer key.
 
 ---
 
@@ -60,8 +62,42 @@ Any deterministic policy scores **0.0** on the hard task. This is not a capabili
 
 - All graders are **deterministic** — same actions produce same score
 - All scores are in **[0.0, 1.0]**
-- Scores **vary with agent actions** — graders never return a fixed value
-- The hard task **genuinely challenges frontier models** — structural impossibility
+- Scores **vary with agent actions** — graders are not constant across trajectories
+- The hard task is **structurally difficult** under standard scalar RLHF aggregation
+
+---
+
+## Why this benchmark is useful (real-world utility)
+
+- **Production mapping**: Annotators disagree; preferences are aggregated into a reward model; policies optimize a **single scalar**. This environment makes that pipeline explicit: per-step preference satisfaction is heterogeneous, but the agent only sees the **population-weighted** reward.
+- **Who would use this**: Alignment / RLHF teams stress-testing reward models, fairness evaluations, and policy audits before deployment.
+- **Non-toy task**: The action is **preference judgment over model outputs** — the same interface used in human feedback collection for modern LLMs.
+
+## Rubric alignment (how judges can score this)
+
+| Criterion | Weight | How this repo supports it |
+|-----------|--------|-----------------------------|
+| Real-world utility | 30% | Models RLHF annotation + aggregation failure; clear deployment-facing motivation |
+| Task & grader quality | 25% | 3 tasks (easy→hard), deterministic graders in [0,1], documented objectives |
+| Environment design | 20% | Dense per-step reward, fixed horizon, clean `reset`/`step`/`state` |
+| Code quality & spec compliance | 15% | Pydantic types, Dockerfile, HF Space, `openenv validate`, automated tests |
+| Creativity & novelty | 10% | Fairness collapse under RLHF aggregation as a benchmark mechanic |
+
+## Grader definitions (deterministic)
+
+Let \(g_i^{(t)}\in\{0,1\}\) be group \(i\) satisfaction at step \(t\) (from per-group rewards).
+
+- **Easy — `majority_dominance`**: fraction of steps where the **Concise** group (index 0) is satisfied.
+- **Medium — `mixed_preferences`**: average, over groups, of each group’s time-averaged satisfaction.
+- **Hard — `fairness_collapse`**: \(1 - \big(\max_i \bar g_i - \min_i \bar g_i\big)\) with \(\bar g_i = \frac{1}{T}\sum_t g_i^{(t)}\).
+
+Episode length \(T\) is `max_steps` (10).
+
+## Exploit resistance (intentional design)
+
+- Graders consume **full episode history**, not a single shortcut feature.
+- The dataset includes prompts where **length ties** between A and B; **technical vocabulary density** can decide the Technical group’s preference, reducing naive “always pick the shorter answer” strategies.
+- Episodes always terminate at `max_steps` (no infinite trajectories).
 
 ---
 
@@ -89,12 +125,12 @@ Any deterministic policy scores **0.0** on the hard task. This is not a capabili
 reward = sum( group_weight[g] * group_reward(g, action) )  for g in {0, 1, 2}
 ```
 
-- **Range:** [0.0, 1.0] per step
-- **Dense:** computed every step, not just end-of-episode
-- **Partial:** varies continuously with actions (not binary)
-- **Meaningful:** choosing the majority-preferred response gives higher aggregated reward, but hurts minority groups — exactly the RLHF tradeoff
+- **Range:** [0.0, 1.0] per step (weighted sum of per-group binary satisfactions)
+- **Dense:** computed every step, not only at episode end
+- **Partial:** per-step signal varies with the chosen response and the active prompt pair
+- **Meaningful:** optimizing the scalar aggregate can **conflict** with subgroup fairness — the core RLHF tension modeled here
 
-The `info` dict returns `per_group_rewards`, `fairness_gap`, `true_reward`, and `hidden_group` for diagnostics.
+The `info` dict includes `per_group_rewards`, `fairness_gap`, `true_reward`, `hidden_group`, and `weight_breakdown` (per-group contribution to the aggregated reward).
 
 ---
 
@@ -147,6 +183,8 @@ curl https://pavanmaddula-artemis2-sp.hf.space/tasks
 
 ```bash
 pip install -r requirements.txt
+# optional: same core as hackathon docs
+pip install "openenv-core>=0.2.0"
 ```
 
 ### Run locally
@@ -154,6 +192,16 @@ pip install -r requirements.txt
 ```bash
 python -m uvicorn env.environment:app --host 0.0.0.0 --port 7860
 ```
+
+### OpenEnv-style server (recommended in hackathon docs)
+
+If you use `uv` with this repo’s `pyproject.toml`:
+
+```bash
+uv run server
+```
+
+This invokes the `server` console script (`server.app:main`), which runs Uvicorn on port `7860` (or `PORT`).
 
 ### Docker
 
@@ -168,8 +216,11 @@ docker run -p 7860:7860 pref-agg-env
 export API_BASE_URL="https://router.huggingface.co/v1"
 export MODEL_NAME="Qwen/Qwen2.5-72B-Instruct"
 export HF_TOKEN="hf_your_token"
+# or: export OPENAI_API_KEY="sk-..."
 python inference.py
 ```
+
+Run **multiple seeds** locally by changing `seed` in `PreferenceAggregationEnv` inside `inference.py` or wrapping runs — keep total runtime under the platform limit.
 
 ---
 
@@ -179,19 +230,33 @@ python inference.py
 |----------|-------------|---------|
 | `API_BASE_URL` | LLM API endpoint | `https://router.huggingface.co/v1` |
 | `MODEL_NAME` | Model identifier | `Qwen/Qwen2.5-72B-Instruct` |
-| `HF_TOKEN` | HuggingFace API key | (required for inference) |
+| `HF_TOKEN` | Primary API key (HF router / compatible) | (set for real runs) |
+| `OPENAI_API_KEY` | Alternative API key (accepted if `HF_TOKEN` unset) | — |
 
 ---
 
 ## Baseline Scores
 
-Scores from running `inference.py` with a greedy LLM agent (always picks higher-reward response):
+`inference.py` runs an **LLM policy** (OpenAI client) that chooses **A or B** from the prompt; it is **not** an oracle that reads hidden rewards.
 
-| Task | Score | Grader | Interpretation |
-|------|-------|--------|----------------|
-| `majority_dominance` | 0.70 | 1.00 | Agent learns majority easily |
-| `mixed_preferences` | 0.50 | 0.37 | Partial tradeoff, no group fully satisfied |
-| `fairness_collapse` | 0.33 | 0.00 | Structural failure — 100% fairness gap |
+Illustrative outcomes (vary with model and temperature):
+
+| Task | Typical episode score (sum of rewards / 10) | Typical grader | Notes |
+|------|-----------------------------------------------|------------------|------|
+| `majority_dominance` | ~0.5–0.8 | often high | Majority-aligned choices help |
+| `mixed_preferences` | ~0.4–0.6 | mid | Conflicting population weights |
+| `fairness_collapse` | varies | often **~0.0** for deterministic-ish policies | Structural fairness gap |
+
+See `expected_baseline` / `expected_score` in `openenv.yaml` for registry expectations.
+
+---
+
+## Automated tests
+
+```bash
+pip install -e ".[dev]"
+pytest -q
+```
 
 ---
 
@@ -201,14 +266,18 @@ Scores from running `inference.py` with a greedy LLM agent (always picks higher-
 ├── inference.py           Baseline inference script (root, required)
 ├── openenv.yaml           Task registry + environment metadata
 ├── Dockerfile             Docker config (port 7860, health check)
-├── requirements.txt       Dependencies
-├── README.md              This file
+├── requirements.txt       Dependencies (+ openenv-core for validation)
+├── pyproject.toml         Packaging, optional dev deps, `server` / `serve` scripts
+├── uv.lock                Lockfile for uv-based workflows
+├── tests/                  Pytest contract tests
+├── server/
+│   └── app.py             `uv run server` entry (Uvicorn)
 └── env/
     ├── __init__.py         Package init
     ├── environment.py      PreferenceAggregationEnv + FastAPI server
     ├── models.py           Pydantic: Observation, Action, Reward, StepResult
     ├── reward.py           Per-group + aggregated reward functions
-    └── tasks.py            3 tasks, 15-prompt dataset, deterministic graders
+    └── tasks.py            3 tasks, expanded dataset, deterministic graders
 ```
 
 ---
@@ -232,7 +301,7 @@ This environment is **Team Artemis 2's** Round 1 submission for:
 | | |
 |---|---|
 | **Event** | Meta OpenEnv Hackathon — Round 1 |
-| **Round** | Round 1 — Build a Mini RL Environment (25 Mar - 8 Apr 2026) |
+| **Round** | Round 1 — Build a Mini RL Environment (check dashboard for latest deadline) |
 | **Team** | **Artemis 2** |
 | **Lead** | M P V S Gopinadh (`pavanmaddula44@gmail.com`) |
 | **Member** | Kappara Lakshmi Sindhu (`klsindhu68@gmail.com`) |

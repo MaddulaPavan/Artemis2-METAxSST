@@ -25,8 +25,10 @@ from typing import List, Dict, Any, Callable
 
 
 # ---------------------------------------------------------------------------
-# Embedded dataset (15 prompt-response pairs)
+# Embedded dataset (prompt-response pairs; expanded with tie-break cases)
 # response_a = concise/simple, response_b = detailed/technical
+# Some rows use similar lengths so Concise vs Detailed ties; Technical density
+# then decides preference — reduces naive "always pick the shorter" heuristics.
 # ---------------------------------------------------------------------------
 
 DATASET: List[Dict[str, str]] = [
@@ -180,6 +182,39 @@ DATASET: List[Dict[str, str]] = [
             "embedding vectors using HNSW graphs or IVF with product quantization to reduce retrieval "
             "complexity from O(n*d) to O(log n). They are integral to retrieval-augmented generation "
             "pipelines for semantic search and external memory injection during LLM inference."
+        ),
+    },
+    # Tie-break rows: similar lengths; technical vocabulary density breaks ties.
+    {
+        "prompt": "What is batch normalization?",
+        "response_a": "Batch normalization stabilizes training by normalizing layer inputs across a batch.",
+        "response_b": (
+            "Batch normalization standardizes activations using batch mean and variance, then applies "
+            "learnable scale and shift; it reduces internal covariate shift and allows higher learning rates."
+        ),
+    },
+    {
+        "prompt": "What is dropout?",
+        "response_a": "Dropout randomly disables neurons during training to reduce overfitting.",
+        "response_b": (
+            "Dropout samples a sub-network each step by zeroing activations with probability p; at inference, "
+            "weights are scaled by (1-p) to match expected activations under the training distribution."
+        ),
+    },
+    {
+        "prompt": "What is a learning rate schedule?",
+        "response_a": "A schedule changes the learning rate over training time to improve convergence.",
+        "response_b": (
+            "Learning rate schedules include step decay, cosine annealing, and warmup; they balance fast early "
+            "progress with stable late-stage optimization near minima."
+        ),
+    },
+    {
+        "prompt": "What is data augmentation?",
+        "response_a": "Data augmentation creates modified training examples to improve generalization.",
+        "response_b": (
+            "Augmentation applies label-preserving transforms (crop, rotate, paraphrase) to expand effective "
+            "dataset diversity and reduce overfitting under limited supervision."
         ),
     },
 ]

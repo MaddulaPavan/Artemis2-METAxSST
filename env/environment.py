@@ -180,10 +180,15 @@ class PreferenceAggregationEnv:
                 context         = self.task["context"],
             )
 
+        breakdown = {
+            f"group_{g}_weighted": round(dist[g] * per_group[g], 6)
+            for g in range(len(dist))
+        }
         info: Dict[str, Any] = {
             "true_reward":   true_r,
             "aggregated_reward": agg,
             "per_group_rewards": per_group,
+            "weight_breakdown": breakdown,
             "hidden_group":  self._hidden_group,
             "group_name":    GROUP_NAMES[self._hidden_group],
             "fairness_gap":  round(gap, 4),
@@ -210,6 +215,7 @@ class PreferenceAggregationEnv:
             [h["group_rewards"] for h in self._episode_history]
         ) if self._episode_history else 0.0
 
+        dist = self.task["group_distribution"]
         return {
             "task_id":            self.task_id,
             "hidden_group":       self._hidden_group,
@@ -217,7 +223,8 @@ class PreferenceAggregationEnv:
             "step_count":         self._step_count,
             "episode_done":       self._episode_done,
             "episode_rewards":    self._episode_rewards,
-            "group_distribution": self.task["group_distribution"],
+            "group_distribution": dist,
+            "effective_weights":  list(dist),
             "fairness_gap":       round(gap, 4),
             "grader_score":       self._grader_score,
         }
