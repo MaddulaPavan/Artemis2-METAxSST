@@ -64,6 +64,7 @@ The hard task’s grader is **near zero for deterministic policies** because sub
 - All scores are in **[0.0, 1.0]**
 - Scores **vary with agent actions** — graders are not constant across trajectories
 - The hard task is **structurally difficult** under standard scalar RLHF aggregation
+- Each task’s **`observation.context`** starts with **`EASY —` / `MEDIUM —` / `HARD —`** so the mode is obvious from `/reset` and every `/step` (no code spelunking).
 
 ---
 
@@ -129,7 +130,7 @@ aggregated_reward = sum( group_weight[g] * group_reward(g, action) )  for g in {
 
 **Policy-facing reward** (returned as `StepResult.reward` and in `previous_reward`): a mild **sharpening** maps \([0,1]\to[0,1]\) toward clearer highs/lows so agents see stronger contrast between A and B when margins are small. Graders use **only** per-step `group_rewards`, so evaluation remains tied to actual subgroup satisfaction.
 
-- Default sharpening: `REWARD_SHARPEN_GAMMA=1.35` (set to `1.0` to disable sharpening).
+- Default sharpening: `REWARD_SHARPEN_GAMMA=1.55` (set to `1.0` to disable; increase up to `2.0` if you need stronger A vs B separation on ambiguous pairs).
 - **Range:** [0.0, 1.0] per step
 - **Dense:** computed every step, not only at episode end
 - **Contrast diagnostic:** `info["action_margin"]` is \(|R(A)-R(B)|\) on the **raw** aggregate for the current prompt pair.
@@ -237,7 +238,7 @@ Run **multiple seeds** locally by changing `seed` in `PreferenceAggregationEnv` 
 | `HF_TOKEN` | Primary API key (HF router / compatible) | (set for real runs) |
 | `OPENAI_API_KEY` | Alternative API key (accepted if `HF_TOKEN` unset) | — |
 | `INFERENCE_MODE` | `llm` (default) or `heuristic` — deterministic argmax on population-weighted aggregate | `llm` |
-| `REWARD_SHARPEN_GAMMA` | Sharpen policy-facing reward; `1.0` = off | `1.35` |
+| `REWARD_SHARPEN_GAMMA` | Sharpen policy-facing reward; `1.0` = off | `1.55` |
 
 ---
 

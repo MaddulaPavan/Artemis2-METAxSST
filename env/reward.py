@@ -65,7 +65,7 @@ def compute_all_group_rewards(action: int, response_a: str, response_b: str) -> 
     return [group_reward(g, action, response_a, response_b) for g in range(3)]
 
 
-def sharpen_aggregated_reward(x: float, gamma: float = 1.35) -> float:
+def sharpen_aggregated_reward(x: float, gamma: float = 1.55) -> float:
     """
     Map [0,1] → [0,1] with stronger separation toward 0 and 1 (clearer policy signal).
 

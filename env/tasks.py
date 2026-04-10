@@ -309,9 +309,8 @@ TASKS: Dict[str, Dict[str, Any]] = {
         "group_distribution": [0.70, 0.20, 0.10],
         "max_steps":         10,
         "context": (
-            "You are simulating RLHF annotators for a general audience. "
-            "Prefer concise answers (roughly 20–40 words when possible) that still explain the idea clearly. "
-            "Avoid unnecessary jargon unless it improves correctness."
+            "EASY — Obvious majority preference. "
+            "User strongly prefers concise answers (20–40 words). Avoid unnecessary detail."
         ),
         "grader":            grade_majority_dominance,
         "expected_baseline": 0.70,
@@ -329,8 +328,8 @@ TASKS: Dict[str, Dict[str, Any]] = {
         "group_distribution": [0.40, 0.35, 0.25],
         "max_steps":         10,
         "context": (
-            "Users have mixed backgrounds: some want short takeaways, others want depth or technical precision. "
-            "Trade off length, clarity, and technical detail — no single style fits everyone."
+            "MEDIUM — Real trade-off. "
+            "User values both clarity and depth. Balance conciseness with completeness."
         ),
         "grader":            grade_mixed_preferences,
         "expected_baseline": 0.50,
@@ -348,8 +347,9 @@ TASKS: Dict[str, Dict[str, Any]] = {
         "group_distribution": [0.333, 0.333, 0.334],
         "max_steps":         10,
         "context": (
-            "Three equally sized user groups want concise, detailed, or technically dense answers. "
-            "You do not know which group you are serving on a given step — optimize a single choice under that ambiguity."
+            "HARD — No perfect answer. "
+            "Different users prefer different styles. No single answer satisfies all. "
+            "Choose the most broadly acceptable response. You do not know which user type you serve this step."
         ),
         "grader":            grade_fairness_collapse,
         "expected_baseline": 0.10,

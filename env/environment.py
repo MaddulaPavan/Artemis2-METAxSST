@@ -31,11 +31,11 @@ from env.reward import (
 )
 
 def _reward_sharpen_gamma() -> float:
-    raw = os.getenv("REWARD_SHARPEN_GAMMA", "1.35").strip()
+    raw = os.getenv("REWARD_SHARPEN_GAMMA", "1.55").strip()
     try:
         g = float(raw)
     except ValueError:
-        g = 1.35
+        g = 1.55
     return max(1.0, min(g, 2.5))
 
 # ---------------------------------------------------------------------------
