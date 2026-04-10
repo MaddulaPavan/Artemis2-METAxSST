@@ -38,6 +38,18 @@ def _reward_sharpen_gamma() -> float:
         g = 1.55
     return max(1.0, min(g, 2.5))
 
+
+def _reward_sharpen_gamma_for_task(task_id: str) -> float:
+    """Hard task uses stronger sharpening so A vs B policy signal stays crisp under balanced weights."""
+    if task_id != "fairness_collapse":
+        return _reward_sharpen_gamma()
+    raw = os.getenv("REWARD_SHARPEN_GAMMA_HARD", "1.90").strip()
+    try:
+        g = float(raw)
+    except ValueError:
+        g = 1.90
+    return max(1.0, min(g, 2.5))
+
 # ---------------------------------------------------------------------------
 # Core environment class
 # ---------------------------------------------------------------------------
@@ -157,7 +169,7 @@ class PreferenceAggregationEnv:
         agg       = compute_aggregated_reward(act, obs.response_a, obs.response_b, dist)
         true_r    = group_reward(self._hidden_group, act, obs.response_a, obs.response_b)
 
-        gamma = _reward_sharpen_gamma()
+        gamma = _reward_sharpen_gamma_for_task(self.task_id)
         step_reward = sharpen_aggregated_reward(agg, gamma)
 
         # Running fairness gap
@@ -203,6 +215,7 @@ class PreferenceAggregationEnv:
             "aggregated_reward": agg,
             "policy_reward": step_reward,
             "reward_sharpen_gamma": gamma,
+            "reward_sharpen_mode": "hard" if self.task_id == "fairness_collapse" else "default",
             "per_group_rewards": per_group,
             "weight_breakdown": breakdown,
             "action_margin": round(margin, 6),

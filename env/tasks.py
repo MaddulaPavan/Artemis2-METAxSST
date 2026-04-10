@@ -348,8 +348,9 @@ TASKS: Dict[str, Dict[str, Any]] = {
         "max_steps":         10,
         "context": (
             "HARD — No perfect answer. "
-            "Different users prefer different styles. No single answer satisfies all. "
-            "Choose the most broadly acceptable response. You do not know which user type you serve this step."
+            "Different users prefer different styles; no single answer satisfies everyone. "
+            "Choose the response that is broadly acceptable across users. "
+            "You do not know which user type you serve this step."
         ),
         "grader":            grade_fairness_collapse,
         "expected_baseline": 0.10,

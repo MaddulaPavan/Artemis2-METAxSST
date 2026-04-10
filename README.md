@@ -131,6 +131,7 @@ aggregated_reward = sum( group_weight[g] * group_reward(g, action) )  for g in {
 **Policy-facing reward** (returned as `StepResult.reward` and in `previous_reward`): a mild **sharpening** maps \([0,1]\to[0,1]\) toward clearer highs/lows so agents see stronger contrast between A and B when margins are small. Graders use **only** per-step `group_rewards`, so evaluation remains tied to actual subgroup satisfaction.
 
 - Default sharpening: `REWARD_SHARPEN_GAMMA=1.55` (set to `1.0` to disable; increase up to `2.0` if you need stronger A vs B separation on ambiguous pairs).
+- **Hard task only** (`fairness_collapse`): `REWARD_SHARPEN_GAMMA_HARD` defaults to **1.90** so policy rewards stay separated when population weights are balanced (reduces 0.52 vs 0.49 style ties for the agent).
 - **Range:** [0.0, 1.0] per step
 - **Dense:** computed every step, not only at episode end
 - **Contrast diagnostic:** `info["action_margin"]` is \(|R(A)-R(B)|\) on the **raw** aggregate for the current prompt pair.
@@ -239,6 +240,7 @@ Run **multiple seeds** locally by changing `seed` in `PreferenceAggregationEnv` 
 | `OPENAI_API_KEY` | Alternative API key (accepted if `HF_TOKEN` unset) | — |
 | `INFERENCE_MODE` | `llm` (default) or `heuristic` — deterministic argmax on population-weighted aggregate | `llm` |
 | `REWARD_SHARPEN_GAMMA` | Sharpen policy-facing reward; `1.0` = off | `1.55` |
+| `REWARD_SHARPEN_GAMMA_HARD` | Extra sharpen for `fairness_collapse` only | `1.90` |
 
 ---
 
@@ -251,7 +253,7 @@ set INFERENCE_MODE=heuristic
 python inference.py
 ```
 
-That policy picks A or B by **maximizing the same population-weighted aggregate** defined in the env (public weights only — **no hidden group**). It is strong on easy/medium tasks and is useful for score calibration; it does not “solve” the hard fairness objective.
+The **heuristic** policy follows **`observation.context` prefixes**: EASY → shorter answer; MEDIUM → population-weighted aggregate argmax; HARD → technical-density preference, then aggregate as tie-break. **No hidden group.** Use it for calibration; it does not “solve” the hard fairness grader.
 
 Illustrative outcomes (vary with model and temperature):
 

@@ -10,9 +10,9 @@ REQUIRED ENVIRONMENT VARIABLES:
   OPENAI_API_KEY   Alternative API key (OpenAI-compatible; accepted if HF_TOKEN unset)
 
 OPTIONAL:
-  INFERENCE_MODE   "llm" (default) or "heuristic" — deterministic baseline that picks
-                   the response with higher population-weighted aggregate reward
-                   (strong, reproducible; uses task weights only, no hidden group).
+  INFERENCE_MODE   "llm" (default) or "heuristic" — deterministic baseline using
+                   observation.context prefixes (EASY/MEDIUM/HARD): concise length,
+                   population aggregate, then technical-density tie-break (no hidden group).
 
 STDOUT FORMAT (mandatory — any deviation fails evaluation):
   [START] task=<task_name> env=<benchmark> model=<model_name>
@@ -40,7 +40,7 @@ API_KEY: str = (
 API_BASE_URL: str = os.getenv("API_BASE_URL") or "https://router.huggingface.co/v1"
 MODEL_NAME:   str = os.getenv("MODEL_NAME") or "Qwen/Qwen2.5-72B-Instruct"
 INFERENCE_MODE: str = os.getenv("INFERENCE_MODE", "llm").strip().lower()
-HEURISTIC_MODEL_LABEL = "heuristic-population-aggregate"
+HEURISTIC_MODEL_LABEL = "heuristic-prefix-adaptive"
 
 # ---------------------------------------------------------------------------
 # Constants
@@ -56,11 +56,44 @@ MAX_TOKENS       = 8
 
 SYSTEM_PROMPT = (
     "You are collecting RLHF-style preferences between two model responses. "
-    "Read the Context line first — it states who the answer should serve and what to optimize "
-    "(brevity vs depth vs technical density). "
-    "Choose the single response (A or B) that best matches that Context for the user question. "
+    "The Context always starts with EASY —, MEDIUM —, or HARD —. Follow that mode: "
+    "EASY favors concise clear answers; MEDIUM balances brevity and completeness; "
+    "HARD asks for the most broadly acceptable answer when no option is perfect. "
+    "Choose A or B that best fits the Context for the question. "
     "Reply with ONLY the letter A or B — nothing else."
 )
+
+
+def heuristic_choice_from_context(
+    context: str,
+    response_a: str,
+    response_b: str,
+    task_id: str,
+) -> str:
+    """
+    Prefix-conditioned baseline: aligns with how tasks are labeled (no hidden group).
+    EASY → shorter; MEDIUM → population-weighted aggregate argmax; HARD → technical-density tie-break.
+    """
+    from env.tasks import TASKS
+    from env.reward import compute_aggregated_reward, technical_score
+
+    a, b = response_a.strip(), response_b.strip()
+    la, lb = len(a), len(b)
+    weights = TASKS[task_id]["group_distribution"]
+    r0 = compute_aggregated_reward(0, response_a, response_b, weights)
+    r1 = compute_aggregated_reward(1, response_a, response_b, weights)
+
+    if context.strip().startswith("EASY"):
+        return "A" if la <= lb else "B"
+    if context.strip().startswith("MEDIUM"):
+        return "A" if r0 >= r1 else "B"
+    if context.strip().startswith("HARD"):
+        ta = technical_score(response_a)
+        tb = technical_score(response_b)
+        if ta != tb:
+            return "A" if ta > tb else "B"
+        return "A" if r0 >= r1 else "B"
+    return "A" if r0 >= r1 else "B"
 
 
 def model_label_for_logs() -> str:
@@ -163,9 +196,6 @@ async def run_task(client: OpenAI, task_id: str) -> dict:
     sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
     from env.environment import PreferenceAggregationEnv
     from env.models import Action
-    from env.tasks import TASKS
-    from env.reward import compute_aggregated_reward
-
     env    = PreferenceAggregationEnv(task_id=task_id, seed=42)
     result = env.reset()  # OpenENV.reset()
 
@@ -185,14 +215,12 @@ async def run_task(client: OpenAI, task_id: str) -> dict:
             error = None
 
             if INFERENCE_MODE == "heuristic":
-                weights = TASKS[task_id]["group_distribution"]
-                r0 = compute_aggregated_reward(
-                    0, obs.response_a, obs.response_b, weights
+                choice_letter = heuristic_choice_from_context(
+                    obs.context,
+                    obs.response_a,
+                    obs.response_b,
+                    task_id,
                 )
-                r1 = compute_aggregated_reward(
-                    1, obs.response_a, obs.response_b, weights
-                )
-                choice_letter = "A" if r0 >= r1 else "B"
             else:
                 choice_letter = get_model_action(
                     client      = client,

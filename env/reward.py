@@ -39,6 +39,11 @@ def _technical_score(text: str) -> float:
     return sum(1 for w in words if w in TECHNICAL_VOCAB) / len(words)
 
 
+def technical_score(text: str) -> float:
+    """Fraction of tokens in TECHNICAL_VOCAB (public; used by baselines / diagnostics)."""
+    return _technical_score(text)
+
+
 def group_reward(group: int, action: int, response_a: str, response_b: str) -> float:
     """
     Compute true reward for a given preference group.
